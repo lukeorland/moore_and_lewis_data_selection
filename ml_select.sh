@@ -2,17 +2,22 @@
 
 set -o pipefail
 
-temp_dir=$ML_DESTDIR/temp
+temp_dir=$ML_DEST_DIR/temp
 num_specific_segs=$(cat $ML_SPECIFIC_DOMAIN_CORPUS_PREFIX.$ML_SOURCE_LANG | wc -l)
-languages=$(eval echo $ML_CALCULATION_LANGUAGES)
 
+calc_languages=""
+[ "$ML_RANK_BY_SOURCE_LANG" == "true" ] && calc_languages="$ML_SOURCE_LANG $calc_languages"
+[ "$ML_RANK_BY_TARGET_LANG" == "true" ] && calc_languages="$ML_TARGET_LANG $calc_languages"
+
+echo >&2
 echo "--- Clearing the temporary directory." >&2
 rm -rf $temp_dir
 mkdir -p $temp_dir
+rm -f $ML_DEST_DIR/sorted_training.{$ML_SOURCE_LANG,$ML_TARGET_LANG}
 
 # Copy corpora, insert space at the beginning of each line to prevent srilm
 # from ignoring a line with a hash character at the beginning.
-for lang in $languages; do
+for lang in $calc_languages; do
   # general-domain corpus
   cat $ML_GENERAL_DOMAIN_CORPUS_PREFIX.$lang \
     | sed 's/^/ /' \
@@ -23,8 +28,8 @@ for lang in $languages; do
     > $temp_dir/copied_specific_domain_corpus_prefix.$lang
 done
 
-for lang in $languages; do
-  echo
+for lang in $calc_languages; do
+  echo >&2
   echo "--- Extracting the $lang-side vocabulary from" >&2
   echo "--- the specific-domain corpus..." >&2
   # Only words that appeared more than once go into the vocab.
@@ -37,8 +42,8 @@ for lang in $languages; do
     > $temp_dir/specific_$lang.vocab
 done
 
-for lang in $languages; do
-  echo
+for lang in $calc_languages; do
+  echo >&2
   echo "--- Selecting the equivalent number of segments from the $lang-side" >&2
   echo "--- of the general domain as in the specific domain for building a " >&2
   echo "--- language model." >&2
@@ -47,16 +52,16 @@ for lang in $languages; do
 done
 
 for domain in general specific; do
-  for lang in $languages; do
-    echo
+  for lang in $calc_languages; do
+    echo >&2
     echo "--- Building a language model from $domain-domain $lang text," >&2
-    echo "--- with vocabulary restricted by that of the in-domain corpus." >&2
+    echo "--- with vocabulary restricted by non-singleton tokens from the in-domain corpus." >&2
     if [ "$domain" == "specific" ]; then
       text=$temp_dir/copied_specific_domain_corpus_prefix.$lang
     else
       text=$temp_dir/general_lm_training_segments.$lang
     fi
-    $GRID_CMD $SRILM_DIR/ngram-count \
+    $SRILM_DIR/ngram-count \
       -unk \
       -interpolate \
       -order 5 \
@@ -68,22 +73,23 @@ for domain in general specific; do
 done
 
 for domain in general specific; do
-  for lang in $languages; do
-    echo
+  for lang in $calc_languages; do
+    echo >&2
     echo "--- Calculating the perplexity of the general-domain text segment " >&2
     echo "--- against the $domain $lang-side LM." >&2
-    $GRID_CMD $SRILM_DIR/ngram -debug 1 -unk \
+    $SRILM_DIR/ngram -debug 1 -unk \
         -lm $temp_dir/lm_${domain}_$lang.gz \
         -ppl $temp_dir/copied_general_domain_corpus_prefix.$lang \
       | grep "zeroprobs.* logprob.* ppl.* ppl1" \
       | awk '{print $6}' \
       | head -n -1 \
       > $temp_dir/ppl_${domain}_${lang}
+
   done
 done
 
-for lang in $languages; do
-  echo
+for lang in $calc_languages; do
+  echo >&2
   echo "--- Subtracting (the perplexity of the source-side $lang text against the" >&2
   echo "--- general-domain LM)" >&2
   echo "--- from (the perplexity of the source-side text against the" >&2
@@ -95,7 +101,7 @@ done
 
 # If the number of ppl_diff files is 2, then add together the perplexity differences.
 if [ $(ls $temp_dir/ppl_diff_* | wc -l) -eq 2 ]; then
-  echo
+  echo >&2
   echo "--- Adding together the perplexity differences for both target-" >&2
   echo "--- and source-languages" >&2
   paste $temp_dir/ppl_diff_$ML_SOURCE_LANG $temp_dir/ppl_diff_$ML_TARGET_LANG \
@@ -103,14 +109,14 @@ if [ $(ls $temp_dir/ppl_diff_* | wc -l) -eq 2 ]; then
     > $temp_dir/ppl_diffs_summed
 fi
 
-# Determine whether to use ppl_diffs_summed or one of the ppl_diff_$lang files to create the training data sorted by rank.
+# Determine whether to use ppl_diffs_summed or one of the ppl_diff_* files to create the training data sorted by rank.
 if [ -e $temp_dir/ppl_diffs_summed ]; then
   rankfile=$temp_dir/ppl_diffs_summed
 else
   rankfile=$temp_dir/ppl_diff_*
 fi
 
-echo
+echo >&2
 echo "--- Sorting training data by (summed) perplexity difference scores" >&2
 echo "--- and deleting consecutive duplicate training candidates." >&2
 # Combine score with source segment and target segment.
@@ -128,13 +134,13 @@ cat $temp_dir/scores_source_target.tsv \
   > $temp_dir/sorted-uniq-scores_source_target.tsv
 
 # Then write source and target training corpus files in sorted order.
-echo
+echo >&2
 echo "--- Writing source and target training corpus files in sorted order." >&2
 cat $temp_dir/sorted-uniq-scores_source_target.tsv \
 	| tee \
 	>(awk -F '\t' '{print $2}' \
-		> $ML_DESTDIR/sorted_training.$ML_SOURCE_LANG) \
+		> $ML_DEST_DIR/general_corpus_sorted.$ML_SOURCE_LANG) \
 	>(awk -F '\t' '{print $3}' \
-		> $ML_DESTDIR/sorted_training.$ML_TARGET_LANG) \
+		> $ML_DEST_DIR/general_corpus_sorted.$ML_TARGET_LANG) \
 	> /dev/null
 
