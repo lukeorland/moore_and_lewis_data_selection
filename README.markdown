@@ -128,3 +128,6 @@ Writing source and target training corpus files in sorted order.
 
 Finally, it sorts the file by the perplexity difference value.
 
+# TODO
+
+- sort files aligned by berkeley or giza
