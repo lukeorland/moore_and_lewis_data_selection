@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 
+set -u
+set -e
 set -o pipefail
+
+vars_error=false
+if [ -z "$SRILM_DIR" ]; then echo "SRILM_DIR is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_GENERAL_DOMAIN_CORPUS_PREFIX" ]; then echo "ML_GENERAL_DOMAIN_CORPUS_PREFIX is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_SPECIFIC_DOMAIN_CORPUS_PREFIX" ]; then echo "ML_SPECIFIC_DOMAIN_CORPUS_PREFIX is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_DEST_DIR" ]; then echo "ML_DEST_DIR is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_SOURCE_LANG" ]; then echo "ML_SOURCE_LANG is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_TARGET_LANG" ]; then echo "ML_TARGET_LANG is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_RANK_BY_SOURCE_LANG" ]; then echo "ML_RANK_BY_SOURCE_LANG is not set to anything useful." && vars_error=true; fi
+if [ -z "$ML_RANK_BY_TARGET_LANG" ]; then echo "ML_RANK_BY_TARGET_LANG is not set to anything useful." && vars_error=true; fi
+if [ "$vars_error" == "true" ]; then exit 1; fi
 
 temp_dir=$ML_DEST_DIR/temp
 num_specific_segs=$(cat $ML_SPECIFIC_DOMAIN_CORPUS_PREFIX.$ML_SOURCE_LANG | wc -l)
@@ -144,3 +157,4 @@ cat $temp_dir/sorted-uniq-scores_source_target.tsv \
 		> $ML_DEST_DIR/general_corpus_sorted.$ML_TARGET_LANG) \
 	> /dev/null
 
+rm -rf $temp_dir
