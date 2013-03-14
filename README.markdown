@@ -1,17 +1,22 @@
 # Description #
 
-This script works on parallel translation corpora that have two files, one
-sentence per line in the source language file and the corresponding translation
-on each line of the target-side translation file. The result of running this
-script is a copy of the pair of parallel training data files, sorted with
-sentences at the top that are most "similar" to the domain-specific data and
-least "similar" at the bottom. It is then possible to subsample by selecting
-the first N sentences from the sorted files.
+This script applies Moore and Lewis's approach to [intelligently selecting
+training data](http://research.microsoft.com/apps/pubs/default.aspx?id=138756)
+to domain adaptation of translation models for machine translation.
+
+The result of running this script is a copy of a randomly-ordered
+general-domain corpus, sorted such that the sentences at the top are most
+"similar" to the domain-specific data and the least "similar" sentences are at
+the bottom. It is then possible to subsample by selecting the first N sentences
+from the sorted files.
+
+This script operates on the type of parallel translation corpora that have two
+files, one sentence per line in the source language file, and corresponding
+translation appears on each line of the target-side translation file.
 
 The ranking computations can be done on one language side or both. When sorting
-bilingually, the perplexity of the training sentence pair is calculated for
-both languages then summed.
-
+bilingually, the ranking a training sentence pair is its sum of perplexities
+for the language models built on both sides of the domain-specific data.
 
 # Usage #
 
@@ -232,3 +237,4 @@ Finally, it sorts the file by the perplexity difference value.
 # TODO #
 
 * Sort files aligned by Berkeley Aligner or GIZA++
+
