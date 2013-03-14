@@ -1,38 +1,51 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -u
 set -e
 set -o pipefail
 
-# Check for proper number of command line args.
-EXPECTED_ARGS=7  # or 8, if the final argument is passed
-if [ $# -ne $EXPECTED_ARGS ]
-then
-  echo "Usage: `basename $0` {arg}"
-  exit 2
+MIN_NUM_EXPECTED_ARGS=7  # or 8, if the final argument is passed
+MAX_NUM_EXPECTED_ARGS=8  # or 8, if the final argument is passed
+USAGE="$0 \\
+    GENERAL_DOMAIN_CORPUS_PREFIX \\
+    SPECIFIC_DOMAIN_CORPUS_PREFIX \\
+    DEST_DIR \\
+    SOURCE_LANG \\
+    TARGET_LANG \\
+    RANK_BY_SOURCE_LANG \\
+    RANK_BY_TARGET_LANG \\
+    [ SRILM_BIN_DIR ]"
+
+if [ "$#" -lt "$MIN_NUM_EXPECTED_ARGS" ]; then
+    echo -e "Arguments error. usage:\n$USAGE"
+    exit 2
 fi
 
-vars_error=false
+if [ "$#" -gt "$MAX_NUM_EXPECTED_ARGS" ]; then
+    echo -e "Arguments error. usage:\n$USAGE"
+    exit 2
+fi
 
-shift $*
-GENERAL_DOMAIN_CORPUS_PREFIX=$0
-shift $*
-SPECIFIC_DOMAIN_CORPUS_PREFIX=$0
-shift $*
-DEST_DIR=$0
-shift $*
-SOURCE_LANG=$0
-shift $*
-TARGET_LANG=$0
-shift $*
-RANK_BY_SOURCE_LANG=$0
-shift $*
-RANK_BY_TARGET_LANG=$0
-shift $*
-# TODO get the SRILM_BIN_DIR parameter's value
+GENERAL_DOMAIN_CORPUS_PREFIX=$1
+SPECIFIC_DOMAIN_CORPUS_PREFIX=$2
+DEST_DIR=$3
+SOURCE_LANG=$4
+TARGET_LANG=$5
+RANK_BY_SOURCE_LANG=$6
+RANK_BY_TARGET_LANG=$7
 
-if [ -z "$SRILM_BIN_DIR" ]; then echo "SRILM_BIN_DIR is not set to anything useful." && vars_error=true; fi
-if [ "$vars_error" == "true" ]; then exit 1; fi
+# Default location of srilm compiled binaries
+if [ "$#" == "$MAX_NUM_EXPECTED_ARGS" ]; then
+    SRILM_BIN_DIR=$8
+else
+    SRILM_BIN_DIR="$SRILM/bin/i686_m64"
+fi
+echo "SRILM_BIN_DIR=$SRILM_BIN_DIR"
+
+if [ -z "$SRILM_BIN_DIR" ]; then
+    echo -e "Arguments error. usage:\n$USAGE"
+    exit 2
+fi
 
 temp_dir=$DEST_DIR/temp
 num_specific_segs=$(cat $SPECIFIC_DOMAIN_CORPUS_PREFIX.$SOURCE_LANG | wc -l)
