@@ -15,7 +15,7 @@ files, one sentence per line in the source language file, and corresponding
 translation appears on each line of the target-side translation file.
 
 The ranking computations can be done on one language side or both. When sorting
-bilingually, the ranking a training sentence pair is its sum of perplexities
+bilingually, the ranking of a training sentence pair is its sum of perplexities
 for the language models built on both sides of the domain-specific data.
 
 # Usage #
