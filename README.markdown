@@ -8,9 +8,9 @@ sentences at the top that are most "similar" to the domain-specific data and
 least "similar" at the bottom. It is then possible to subsample by selecting
 the first N sentences from the sorted files.
 
-The ranking computations can be done on one language side or both. If one uses
-the sorting computations bilingually, the a perplexity of the training sentence
-pair is calculated for both languages then summed.
+The ranking computations can be done on one language side or both. When sorting
+bilingually, the perplexity of the training sentence pair is calculated for
+both languages then summed.
 
 
 # Usage #
@@ -18,7 +18,7 @@ pair is calculated for both languages then summed.
 A recommended first step is to tokenize and normalize the general-domain
 training and domain-specific data before processing them with this script.
 
-## Example command ##
+## Command format ##
 
     ./ml_select.sh \
         GENERAL_DOMAIN_CORPUS_PREFIX \
@@ -101,7 +101,7 @@ training and domain-specific data before processing them with this script.
   where `SRILM` is a system variable that has been assigned to the path to the
   SRILM source code directory.
 
-## Example command ##
+## Example command invocation ##
 
     ./ml_select.sh \
         /path/to/general-domain.lc.tok \
