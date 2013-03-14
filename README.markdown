@@ -16,7 +16,7 @@ both languages then summed.
 # Usage #
 
 A recommended first step is to tokenize and normalize the general-domain
-training and domain-specific data before processing them with this script.
+training data and domain-specific data before processing them with this script.
 
 ## Command format ##
 
@@ -116,7 +116,8 @@ training and domain-specific data before processing them with this script.
 ## Notes ##
 
 The two parallel files in a corpus should have the same path prefix, and the
-filename extension should be the language abbreviation (e.g. `.fr`, `.en`).
+filename extension should be the language abbreviations followed by a period
+(e.g. `.fr`, `.en`).
 
 After calling the above command, the general-domain corpus is sorted,
 duplicates are removed, and the result is copied into the two files such as the
