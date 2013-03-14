@@ -5,7 +5,7 @@ set -e
 set -o pipefail
 
 # Check for proper number of command line args.
-EXPECTED_ARGS=7
+EXPECTED_ARGS=7  # or 8, if the final argument is passed
 if [ $# -ne $EXPECTED_ARGS ]
 then
   echo "Usage: `basename $0` {arg}"
@@ -14,15 +14,24 @@ fi
 
 vars_error=false
 
-GENERAL_DOMAIN_CORPUS_PREFIX=$1
-SPECIFIC_DOMAIN_CORPUS_PREFIX=$2
-DEST_DIR=$3
-SOURCE_LANG=$4
-TARGET_LANG=$5
-RANK_BY_SOURCE_LANG=$6
-RANK_BY_TARGET_LANG=$7
+shift $*
+GENERAL_DOMAIN_CORPUS_PREFIX=$0
+shift $*
+SPECIFIC_DOMAIN_CORPUS_PREFIX=$0
+shift $*
+DEST_DIR=$0
+shift $*
+SOURCE_LANG=$0
+shift $*
+TARGET_LANG=$0
+shift $*
+RANK_BY_SOURCE_LANG=$0
+shift $*
+RANK_BY_TARGET_LANG=$0
+shift $*
+# TODO get the SRILM_BIN_DIR parameter's value
 
-if [ -z "$SRILM_DIR" ]; then echo "SRILM_DIR is not set to anything useful." && vars_error=true; fi
+if [ -z "$SRILM_BIN_DIR" ]; then echo "SRILM_BIN_DIR is not set to anything useful." && vars_error=true; fi
 if [ "$vars_error" == "true" ]; then exit 1; fi
 
 temp_dir=$DEST_DIR/temp
@@ -56,7 +65,7 @@ for lang in $calc_languages; do
   echo "--- Extracting the $lang-side vocabulary from" >&2
   echo "--- the specific-domain corpus..." >&2
   # Only words that appeared more than once go into the vocab.
-  $SRILM_DIR/ngram-count -text $temp_dir/copied_specific_domain_corpus_prefix.$lang -write-order 1 -write $temp_dir/specific_$lang.1cnt
+  $SRILM_BIN_DIR/ngram-count -text $temp_dir/copied_specific_domain_corpus_prefix.$lang -write-order 1 -write $temp_dir/specific_$lang.1cnt
   awk \
       '$2 > 1' \
       $temp_dir/specific_$lang.1cnt \
@@ -84,7 +93,7 @@ for domain in general specific; do
     else
       text=$temp_dir/general_lm_training_segments.$lang
     fi
-    $SRILM_DIR/ngram-count \
+    $SRILM_BIN_DIR/ngram-count \
       -unk \
       -interpolate \
       -order 5 \
@@ -100,7 +109,7 @@ for domain in general specific; do
     echo >&2
     echo "--- Calculating the perplexity of the general-domain text segment " >&2
     echo "--- against the $domain $lang-side LM." >&2
-    $SRILM_DIR/ngram -debug 1 -unk \
+    $SRILM_BIN_DIR/ngram -debug 1 -unk \
         -lm $temp_dir/lm_${domain}_$lang.gz \
         -ppl $temp_dir/copied_general_domain_corpus_prefix.$lang \
       | grep "zeroprobs.* logprob.* ppl.* ppl1" \
