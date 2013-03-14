@@ -1,23 +1,122 @@
+# Description #
+
+This script works on parallel translation corpora that have two files, one
+sentence per line in the source language file and the corresponding translation
+on each line of the target-side translation file. The result of running this
+script is a copy of the pair of parallel training data files, sorted with
+sentences at the top that are most "similar" to the domain-specific data and
+least "similar" at the bottom. It is then possible to subsample by selecting
+the first N sentences from the sorted files.
+
+The ranking computations can be done on one language side or both. If one uses
+the sorting computations bilingually, the a perplexity of the training sentence
+pair is calculated for both languages then summed.
+
+
 # Usage #
 
-Clearing the temporary directory.
+A recommended first step is to tokenize and normalize the general-domain
+training and domain-specific data before processing them with this script.
 
 ## Example command ##
 
-    SRILM_DIR=/path/to/srilm/bin \
-    ML_GENERAL_DOMAIN_CORPUS_PREFIX=/general_domain/path/prefix \
-    ML_SPECIFIC_DOMAIN_CORPUS_PREFIX=/specific_domain/path/prefix \
-    ML_DEST_DIR=/dest/dir \
-    ML_SOURCE_LANG=es \
-    ML_TARGET_LANG=en \
-    ML_RANK_BY_SOURCE_LANG=true \
-    ML_RANK_BY_TARGET_LANG=true \
-    ./ml_select.sh
+    ./ml_select.sh \
+        GENERAL_DOMAIN_CORPUS_PREFIX \
+        SPECIFIC_DOMAIN_CORPUS_PREFIX \
+        DEST_DIR \
+        SOURCE_LANG \
+        TARGET_LANG \
+        RANK_BY_SOURCE_LANG \
+        RANK_BY_TARGET_LANG \
+        [ SRILM_BIN_DIR ]
+
+### Parameters ###
+
+* `GENERAL_DOMAIN_CORPUS_PREFIX`
+
+  This is the path to the pair of (normalized, tokenized) parallel
+  general-domain files, with the final "." and language extension removed
+  (e.g. `.fr`, `.en`).
+
+  E.g. if the general-domain files are located at
+
+      /path/to/general-domain.lc.tok.fr
+      /path/to/general-domain.lc.tok.en
+
+  then the value to pass for this parameter is
+
+      /path/to/general-domain.lc.tok.fr
+
+* `SPECIFIC_DOMAIN_CORPUS_PREFIX`
+
+  This is the path to the (pair of) (normalized, tokenized) parallel
+  specific-domain files, with the final "." and language extension removed
+  (e.g. `.fr`, `.en`).
+
+  E.g. if the specific-domain files are located at
+
+      /path/to/specific-domain.lc.tok.fr
+      /path/to/specific-domain.lc.tok.en
+
+  then the value to pass for this parameter is
+
+      /path/to/general-domain.lc.tok
+
+* `DEST_DIR`
+
+  The path to the existing directory where the sorted general-domain files
+  should be written
+
+* `SOURCE_LANG`
+
+  The (probably two-letter) file extension of the source language.
+
+  E.g. for the examples above, the value to pass for this parameter is `fr`.
+
+* `TARGET_LANG`
+
+  The (probably two-letter) file extension of the target language.
+
+  E.g. for the examples above, the value to pass for this parameter is `en`.
+
+* `RANK_BY_SOURCE_LANG`
+
+  Whether to calculate the specific domain's language model's perplexity for
+  each source-language sentence in the general-domain.
+
+  The value to pass is either `true` or `false`.
+
+* `RANK_BY_TARGET_LANG`
+
+  Whether to calculate the specific domain's language model's perplexity for
+  each target-language sentence in the general-domain.
+
+  The value to pass is either `true` or `false`.
+
+* `[ SRILM_BIN_DIR ]` (optional)
+
+  This parameter specifies the path to the directory where the SRILM binary
+  tools (e.g. `ngram`, `ngram-count`) have been compiled in your system. It
+  assumed by default that this location is the directory `$SRILM/bin/i686_m64`,
+  where `SRILM` is a system variable that has been assigned to the path to the
+  SRILM source code directory.
+
+## Example command ##
+
+    ./ml_select.sh \
+        /path/to/general-domain.lc.tok \
+        /path/to/specific-domain.lc.tok \
+        /path/to/destination_directory \
+        fr \
+        en \
+        false \
+        true \
+        $HOME/code/srilm/bin/i686_m64
+
+## Notes ##
 
 The two parallel files in a corpus should have the same path prefix, and the
-filename extension should be the language abbreviation.
-
-# Description #
+filename extension should be the language abbreviation (e.g. `.fr`, `.en`).
 
 After calling the above command, the general-domain corpus is sorted,
 duplicates are removed, and the result is copied into the two files such as the
@@ -26,11 +125,12 @@ following:
     /dest/dir/general_corpus_sorted.es
     /dest/dir/general_corpus_sorted.en
 
-## Calculate perplexity difference ##
 
-TODO: clean this up:
+# How it works
 
-Extracting the en-side vocabulary from
+## Calculating perplexity difference ##
+
+Extracting the target-side vocabulary from
 the specific-domain corpus...
 
 Selecting the equivalent number of segments from the en-side
@@ -128,6 +228,6 @@ Writing source and target training corpus files in sorted order.
 
 Finally, it sorts the file by the perplexity difference value.
 
-# TODO
+# TODO #
 
-- sort files aligned by berkeley or giza
+* Sort files aligned by Berkeley Aligner or GIZA++

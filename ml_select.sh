@@ -4,39 +4,49 @@ set -u
 set -e
 set -o pipefail
 
+# Check for proper number of command line args.
+EXPECTED_ARGS=7
+if [ $# -ne $EXPECTED_ARGS ]
+then
+  echo "Usage: `basename $0` {arg}"
+  exit 2
+fi
+
 vars_error=false
+
+GENERAL_DOMAIN_CORPUS_PREFIX=$1
+SPECIFIC_DOMAIN_CORPUS_PREFIX=$2
+DEST_DIR=$3
+SOURCE_LANG=$4
+TARGET_LANG=$5
+RANK_BY_SOURCE_LANG=$6
+RANK_BY_TARGET_LANG=$7
+
 if [ -z "$SRILM_DIR" ]; then echo "SRILM_DIR is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_GENERAL_DOMAIN_CORPUS_PREFIX" ]; then echo "ML_GENERAL_DOMAIN_CORPUS_PREFIX is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_SPECIFIC_DOMAIN_CORPUS_PREFIX" ]; then echo "ML_SPECIFIC_DOMAIN_CORPUS_PREFIX is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_DEST_DIR" ]; then echo "ML_DEST_DIR is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_SOURCE_LANG" ]; then echo "ML_SOURCE_LANG is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_TARGET_LANG" ]; then echo "ML_TARGET_LANG is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_RANK_BY_SOURCE_LANG" ]; then echo "ML_RANK_BY_SOURCE_LANG is not set to anything useful." && vars_error=true; fi
-if [ -z "$ML_RANK_BY_TARGET_LANG" ]; then echo "ML_RANK_BY_TARGET_LANG is not set to anything useful." && vars_error=true; fi
 if [ "$vars_error" == "true" ]; then exit 1; fi
 
-temp_dir=$ML_DEST_DIR/temp
-num_specific_segs=$(cat $ML_SPECIFIC_DOMAIN_CORPUS_PREFIX.$ML_SOURCE_LANG | wc -l)
+temp_dir=$DEST_DIR/temp
+num_specific_segs=$(cat $SPECIFIC_DOMAIN_CORPUS_PREFIX.$SOURCE_LANG | wc -l)
 
 calc_languages=""
-[ "$ML_RANK_BY_SOURCE_LANG" == "true" ] && calc_languages="$ML_SOURCE_LANG $calc_languages"
-[ "$ML_RANK_BY_TARGET_LANG" == "true" ] && calc_languages="$ML_TARGET_LANG $calc_languages"
+[ "$RANK_BY_SOURCE_LANG" == "true" ] && calc_languages="$SOURCE_LANG $calc_languages"
+[ "$RANK_BY_TARGET_LANG" == "true" ] && calc_languages="$TARGET_LANG $calc_languages"
 
 echo >&2
 echo "--- Clearing the temporary directory." >&2
 rm -rf $temp_dir
 mkdir -p $temp_dir
-rm -f $ML_DEST_DIR/sorted_training.{$ML_SOURCE_LANG,$ML_TARGET_LANG}
+rm -f $DEST_DIR/sorted_training.{$SOURCE_LANG,$TARGET_LANG}
 
 # Copy corpora, insert space at the beginning of each line to prevent srilm
 # from ignoring a line with a hash character at the beginning.
 for lang in $calc_languages; do
   # general-domain corpus
-  cat $ML_GENERAL_DOMAIN_CORPUS_PREFIX.$lang \
+  cat $GENERAL_DOMAIN_CORPUS_PREFIX.$lang \
     | sed 's/^/ /' \
     > $temp_dir/copied_general_domain_corpus_prefix.$lang
   # specific-domain corpus
-  cat $ML_SPECIFIC_DOMAIN_CORPUS_PREFIX.$lang \
+  cat $SPECIFIC_DOMAIN_CORPUS_PREFIX.$lang \
     | sed 's/^/ /' \
     > $temp_dir/copied_specific_domain_corpus_prefix.$lang
 done
@@ -117,7 +127,7 @@ if [ $(ls $temp_dir/ppl_diff_* | wc -l) -eq 2 ]; then
   echo >&2
   echo "--- Adding together the perplexity differences for both target-" >&2
   echo "--- and source-languages" >&2
-  paste $temp_dir/ppl_diff_$ML_SOURCE_LANG $temp_dir/ppl_diff_$ML_TARGET_LANG \
+  paste $temp_dir/ppl_diff_$SOURCE_LANG $temp_dir/ppl_diff_$TARGET_LANG \
     | awk -F '\t' '{print $1 + $2}' \
     > $temp_dir/ppl_diffs_summed
 fi
@@ -134,8 +144,8 @@ echo "--- Sorting training data by (summed) perplexity difference scores" >&2
 echo "--- and deleting consecutive duplicate training candidates." >&2
 # Combine score with source segment and target segment.
 cat $rankfile \
-  | paste - $ML_GENERAL_DOMAIN_CORPUS_PREFIX.$ML_SOURCE_LANG \
-  | paste - $ML_GENERAL_DOMAIN_CORPUS_PREFIX.$ML_TARGET_LANG \
+  | paste - $GENERAL_DOMAIN_CORPUS_PREFIX.$SOURCE_LANG \
+  | paste - $GENERAL_DOMAIN_CORPUS_PREFIX.$TARGET_LANG \
   > $temp_dir/scores_source_target.tsv
 
 # Then sort in ascending orders (largest number is high perplexity against
@@ -152,9 +162,9 @@ echo "--- Writing source and target training corpus files in sorted order." >&2
 cat $temp_dir/sorted-uniq-scores_source_target.tsv \
 	| tee \
 	>(awk -F '\t' '{print $2}' \
-		> $ML_DEST_DIR/general_corpus_sorted.$ML_SOURCE_LANG) \
+		> $DEST_DIR/general_corpus_sorted.$SOURCE_LANG) \
 	>(awk -F '\t' '{print $3}' \
-		> $ML_DEST_DIR/general_corpus_sorted.$ML_TARGET_LANG) \
+		> $DEST_DIR/general_corpus_sorted.$TARGET_LANG) \
 	> /dev/null
 
 rm -rf $temp_dir
