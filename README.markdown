@@ -139,63 +139,45 @@ This Bash script takes the following steps to accomplish its task.
 
 ## Calculate perplexity difference ##
 
-1.  Extract the target-side vocabulary from the specific-domain corpus
-
-1.  Select the equivalent number of segments from the target-side of the
-    general domain as in the specific domain for building a language model.
-
-1.  Build a language model from general-domain target text,
-    with vocabulary restricted by non-singleton tokens from the in-domain
-    corpus.
-
-1.  Build a language model from specific-domain target text,
-    with vocabulary restricted by non-singleton tokens from the in-domain
-    corpus.
-
-1.  Calculate the perplexity of the general-domain text segment
-    against the general target-side LM.
-
-1.  Calculate the perplexity of the general-domain text segment against the
-    specific target-side LM.
-
-1.  Subtract the perplexity of the source-side target text against the
-    general-domain LM from the perplexity of the source-side text against the
-    specific-domain LM
-
 The following computation process is performed first on the source-language
-side, then the target-language side if desired.
+side, then on the target-language side if desired.
 
 1.  Extract the vocabulary from the specific-domain corpus. The vocabulary
     consists of all non-singleton types.
 
-1.  Build a language model from non-in-domain text, with vocabulary restricted
-    by that of the in-domain corpus.
+1.  Randomly select the equivalent number of segments from the the general
+    domain as in the specific domain for building a language model.
 
-1.  Calculate the perplexity of the non-in-domain text against the LM.
+1.  Build a language model from general-domain text, with vocabulary restricted
+    by non-singleton tokens from the specific-domain corpus.
 
-1.  Calculate the perplexity of the source-side non-in-domain text against the
-    in-domain LM.
+1.  Build a language model from specific-domain text, with vocabulary
+    restricted by non-singleton tokens from the specific-domain corpus.
 
-1.  Combine perplexity differences, unprocessed/raw source-, and target-side
-    text segments into a single file.
+1.  Calculate the perplexity of the general-domain LM for the general-domain
+    text segment.
 
-This script prints out a file with the calculated perplexity difference, the
-source-side text segment, then the target-side text segment, all tab-delimited.
-Finally, it sorts the file by the perplexity difference value.
+1.  Calculate the perplexity of the specific-domain LM for the general-domain
+    text segment.
+
+1.  Subtract the perplexity of the general-domain LM from the perplexity of the
+    specific-domain LM for each sentence
 
 ## Sum the two differences together if doing bilingual ranking ##
 
 1.  Combine perplexity differences, unprocessed/raw source-, and target-side
-    text segments into a single file.
+    text segments into a single file and print these rows and colums out to a
+    tab-delimited file.
+
 1.  Add together the perplexity differences for both target- and
     source-languages
 
 ## Sort the general domain lines by ranking ##
 
-1.  Sort training data by (summed) perplexity difference scores and delete
+1.  Sort training data by the (summed) perplexity difference scores and delete
     consecutive duplicate training candidates.
-1.  Write source and target training corpus files in sorted order.
-
+1.  Write separated source- and target-language training corpus files in sorted
+    order.
 
 # TODO #
 
