@@ -122,12 +122,8 @@ for domain in general specific; do
     echo >&2
     echo "--- Calculating the perplexity of the general-domain text segment " >&2
     echo "--- against the $domain $lang-side LM." >&2
-    $SRILM_BIN_DIR/ngram -debug 1 -unk \
-        -lm $temp_dir/lm_${domain}_$lang.gz \
-        -ppl $temp_dir/copied_general_domain_corpus_prefix.$lang \
-      | grep "zeroprobs.* logprob.* ppl.* ppl1" \
-      | awk '{print $6}' \
-      | head -n -1 \
+    ./ppl.sh $temp_dir/lm_${domain}_$lang.gz \
+      < $temp_dir/copied_general_domain_corpus_prefix.$lang \
       > $temp_dir/ppl_${domain}_${lang}
 
   done
